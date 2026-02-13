@@ -71,10 +71,48 @@ else
 LLM_PROVIDER=ollama
 OLLAMA_URL=http://localhost:11434
 EOF
+
+            # Check if Ollama is already installed
+            if command -v ollama &> /dev/null; then
+                echo "      Ollama is already installed."
+            else
+                echo ""
+                echo "      Downloading and installing Ollama..."
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    # macOS
+                    curl -fsSL https://ollama.com/download/Ollama-darwin.zip -o /tmp/Ollama.zip
+                    unzip -o /tmp/Ollama.zip -d /Applications > /dev/null 2>&1
+                    rm /tmp/Ollama.zip
+                else
+                    # Linux
+                    curl -fsSL https://ollama.com/install.sh | sh
+                fi
+
+                if ! command -v ollama &> /dev/null; then
+                    echo ""
+                    echo " ERROR: Ollama installation may have failed."
+                    echo " Install manually from https://ollama.com"
+                    echo " Then run setup.sh again."
+                    exit 1
+                fi
+                echo "      Ollama installed successfully."
+            fi
+
+            # Start Ollama service if not running
             echo ""
-            echo "      Ollama selected. Make sure Ollama is running:"
-            echo "        ollama pull llama3.1"
-            echo "        ollama serve"
+            echo "      Starting Ollama service..."
+            if curl -s --connect-timeout 2 http://localhost:11434/api/tags > /dev/null 2>&1; then
+                echo "      Ollama is already running."
+            else
+                ollama serve > /dev/null 2>&1 &
+                sleep 3
+                echo "      Ollama service started."
+            fi
+
+            # Pull the model
+            echo "      Pulling llama3.1 model (this may take several minutes on first run)..."
+            ollama pull llama3.1
+            echo "      Ollama is ready."
             ;;
         3)
             # Anthropic

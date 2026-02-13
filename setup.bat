@@ -105,10 +105,65 @@ goto :env_done
     echo LLM_PROVIDER=ollama
     echo OLLAMA_URL=http://localhost:11434
 ) > ".env"
+
+:: Check if Ollama is already installed
+where ollama >nul 2>nul
+if %errorlevel% equ 0 (
+    echo       Ollama is already installed.
+    goto :ollama_pull
+)
+
+:: Download and install Ollama
 echo.
-echo       Ollama selected. Make sure Ollama is running:
-echo         ollama pull llama3.1
-echo         ollama serve
+echo       Downloading Ollama installer...
+cd /d "%~dp0"
+powershell -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://ollama.com/download/OllamaSetup.exe' -OutFile 'OllamaSetup.exe' -UseBasicParsing }"
+if not exist "OllamaSetup.exe" (
+    echo.
+    echo  ERROR: Failed to download Ollama.
+    echo  Download manually from https://ollama.com
+    echo.
+    pause
+    exit /b 1
+)
+echo       Installing Ollama (this may take a minute)...
+start /wait OllamaSetup.exe /VERYSILENT /NORESTART
+del /f OllamaSetup.exe >nul 2>nul
+
+:: Verify it installed
+where ollama >nul 2>nul
+if %errorlevel% neq 0 (
+    :: Try adding the default install path
+    set "PATH=%PATH%;%LOCALAPPDATA%\Programs\Ollama"
+    where ollama >nul 2>nul
+    if %errorlevel% neq 0 (
+        echo.
+        echo  ERROR: Ollama installation may have failed.
+        echo  Try installing manually from https://ollama.com
+        echo  Then run setup.bat again.
+        echo.
+        pause
+        exit /b 1
+    )
+)
+echo       Ollama installed successfully.
+
+:ollama_pull
+:: Start Ollama service if not already running
+echo.
+echo       Starting Ollama service...
+powershell -Command "& { try { Invoke-WebRequest -Uri 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 2 | Out-Null; Write-Host '       Ollama is already running.' } catch { Start-Process 'ollama' -ArgumentList 'serve' -WindowStyle Hidden; Start-Sleep -Seconds 3; Write-Host '       Ollama service started.' } }"
+
+:: Pull the model
+echo       Pulling llama3.1 model (this may take several minutes on first run)...
+ollama pull llama3.1
+if %errorlevel% neq 0 (
+    echo.
+    echo  WARNING: Model pull failed. You can try manually:
+    echo    ollama pull llama3.1
+    echo.
+)
+echo       Ollama is ready.
 goto :env_done
 
 :anthropic
