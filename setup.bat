@@ -153,9 +153,7 @@ echo  ============================================
 echo   Setup complete!
 echo  ============================================
 echo.
-echo  Next steps:
-echo    1. Make sure your LLM provider is configured in .env
-echo    2. Start chatting:
-echo       node chat.js
+echo  Launching Pig Pen chat...
 echo.
-pause
+cd /d "%~dp0"
+node chat.js
