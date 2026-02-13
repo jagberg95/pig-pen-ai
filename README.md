@@ -117,3 +117,18 @@ const result = await handleIncomingMessage({
 console.log(result.systemPrompt);  // The prompt that would be sent
 console.log(result.operatorId);    // "naomi_top"
 ```
+
+### Terminal Chat
+
+Chat with your operators directly from the terminal:
+
+```bash
+node chat.js
+```
+
+Inside the chat:
+- Address operators by name: `Jon, what's the vision for Q3?`
+- `/operators` — list all available operators
+- `/status` — show provider and model info
+- `/help` — show all commands
+- `/exit` — quit
