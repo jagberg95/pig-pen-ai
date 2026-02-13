@@ -24,20 +24,36 @@ function getLLMClient(config = {}) {
 }
 
 function shouldHandleMessage(message) {
+  // Always returns true — general messages go to the default operator (Jon)
   if (!message || typeof message !== 'string') {
     return false;
   }
+  return true;
+}
 
+function detectTargetOperator(message) {
   const normalized = message.toLowerCase();
+
+  // Check command triggers
   const commandTriggers = ['#invoke', '/approve', '/approvals', '/clear'];
   if (commandTriggers.some(trigger => normalized.includes(trigger))) {
-    return true;
+    return null; // let the router figure it out
   }
 
+  // Check full names
   const operatorNames = Object.values(operatorRegistry.operators).map(op => op.name.toLowerCase());
+  if (operatorNames.some(name => normalized.includes(name))) {
+    return null; // router will match
+  }
+
+  // Check first names
   const operatorFirstNames = operatorNames.map(name => name.split(' ')[0]);
-  return operatorNames.some(name => normalized.includes(name)) ||
-    operatorFirstNames.some(name => normalized.includes(name));
+  if (operatorFirstNames.some(name => normalized.includes(name))) {
+    return null; // router will match
+  }
+
+  // No operator detected — use default
+  return 'jon_hartman';
 }
 
 async function handleIncomingMessage({
@@ -58,17 +74,33 @@ async function handleIncomingMessage({
   };
 
   const routing = await router.route(message, context, projectContext);
-  if (!routing.success) {
+
+  // Determine the operator — from routing or fallback to default
+  const defaultOperatorId = detectTargetOperator(message);
+  let primaryOperatorId;
+  let primaryOperator;
+
+  if (routing.success && routing.selectedOperators && routing.selectedOperators.length > 0) {
+    primaryOperatorId = routing.selectedOperators[0].operatorId;
+    primaryOperator = operatorRegistry.operators[primaryOperatorId];
+  }
+
+  // If routing didn't find anyone, fall back to default
+  if (!primaryOperator && defaultOperatorId) {
+    primaryOperatorId = defaultOperatorId;
+    primaryOperator = operatorRegistry.operators[primaryOperatorId];
+  }
+
+  if (!primaryOperator) {
     return {
       handled: true,
-      error: routing.error,
+      error: 'No operator could be matched for this request.',
       trace: routing.trace
     };
   }
 
-  const primaryOperator = routing.selectedOperators[0];
   const enrichedContext = await contextManager.loadContextForOperator(
-    primaryOperator.operatorId,
+    primaryOperatorId,
     context,
     projectContext
   );
@@ -82,15 +114,24 @@ async function handleIncomingMessage({
       handled: true,
       routing,
       systemPrompt,
-      operatorId: primaryOperator.operatorId
+      operatorId: primaryOperatorId
     };
   }
 
-  // ── Execute against Claude ──────────────────────────────────────────
+  // ── Execute against LLM ─────────────────────────────────────────────
   try {
     const client = getLLMClient(llmConfig);
+
+    // If routing failed (fallback operator), do a direct single-operator call
+    const executionRouting = (routing.success && routing.selectedOperators && routing.selectedOperators.length > 0)
+      ? routing
+      : {
+          orchestration: { type: 'single', operators: [{ operatorId: primaryOperatorId }] },
+          workflow: { type: 'single', operators: [{ operatorId: primaryOperatorId }], context: {} }
+        };
+
     const execution = await client.execute(
-      routing,
+      executionRouting,
       message,
       buildSystemPrompt,
       operatorRegistry
@@ -100,13 +141,13 @@ async function handleIncomingMessage({
     contextManager.memory.addMessage(userId, {
       role: 'user',
       content: message,
-      operator: primaryOperator.operatorId,
+      operator: primaryOperatorId,
       timestamp: Date.now()
     });
     contextManager.memory.addMessage(userId, {
       role: 'assistant',
       content: execution.synthesis,
-      operator: primaryOperator.operatorId,
+      operator: primaryOperatorId,
       timestamp: Date.now()
     });
 
@@ -114,7 +155,7 @@ async function handleIncomingMessage({
       handled: true,
       routing,
       execution,
-      operatorId: primaryOperator.operatorId,
+      operatorId: primaryOperatorId,
       response: execution.synthesis
     };
   } catch (llmError) {
@@ -122,7 +163,7 @@ async function handleIncomingMessage({
       handled: true,
       routing,
       systemPrompt,
-      operatorId: primaryOperator.operatorId,
+      operatorId: primaryOperatorId,
       error: `LLM execution failed: ${llmError.message}`,
       fallback: true
     };

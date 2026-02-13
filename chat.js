@@ -186,15 +186,6 @@ async function main() {
       return;
     }
 
-    // Check if any operator can handle this
-    if (!shouldHandleMessage(input)) {
-      console.log(`\n  ${c.yellow}No operator matched.${c.reset} Try addressing one by name:`);
-      const names = Object.values(registry.operators).map(op => op.name);
-      console.log(`  ${c.dim}${names.join(', ')}${c.reset}\n`);
-      rl.prompt();
-      return;
-    }
-
     // Route and execute
     console.log(`\n  ${c.dim}Routing...${c.reset}`);
 
