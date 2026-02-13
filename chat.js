@@ -19,7 +19,7 @@ const path = require('path');
 
 // Load .env from project root
 try {
-  require('dotenv').config({ path: path.join(__dirname, '..', '..', '..', '.env') });
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
 } catch (_) {
   // dotenv not installed — env vars must be set manually
 }

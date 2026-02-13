@@ -36,7 +36,7 @@ echo "      Found npm v$NPM_VER"
 # ── Install dependencies ──────────────────────────────────────────
 echo ""
 echo "[2/4] Installing dependencies..."
-cd "$SCRIPT_DIR/openclaw/skills/pigpen"
+cd "$SCRIPT_DIR"
 npm install
 echo "      Dependencies installed successfully."
 

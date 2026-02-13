@@ -38,7 +38,7 @@ echo       Found npm v%NPM_VER%
 :: ── Install dependencies ──────────────────────────────────────────
 echo.
 echo [2/4] Installing dependencies...
-cd /d "%~dp0openclaw\skills\pigpen"
+cd /d "%~dp0"
 call npm install
 if %errorlevel% neq 0 (
     echo.
@@ -83,8 +83,8 @@ echo.
 echo       Setting up Groq (free cloud LLM)...
 echo.
 
-:: Install groq-sdk if not already present
-cd /d "%~dp0openclaw\skills\pigpen"
+:: Check groq-sdk is available (installed with base deps)
+cd /d "%~dp0"
 call npm list groq-sdk >nul 2>nul
 if %errorlevel% neq 0 (
     echo       Installing Groq SDK...
@@ -93,7 +93,6 @@ if %errorlevel% neq 0 (
 ) else (
     echo       Groq SDK already installed.
 )
-cd /d "%~dp0"
 
 :: Open browser to get API key
 echo.
@@ -196,8 +195,8 @@ echo.
 echo       Setting up Anthropic (paid - Claude)...
 echo.
 
-:: Install anthropic SDK if not already present
-cd /d "%~dp0openclaw\skills\pigpen"
+:: Check anthropic SDK is available (installed with base deps)
+cd /d "%~dp0"
 call npm list @anthropic-ai/sdk >nul 2>nul
 if %errorlevel% neq 0 (
     echo       Installing Anthropic SDK...
@@ -206,7 +205,6 @@ if %errorlevel% neq 0 (
 ) else (
     echo       Anthropic SDK already installed.
 )
-cd /d "%~dp0"
 
 :: Open browser to get API key
 echo.
