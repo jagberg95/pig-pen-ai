@@ -1,5 +1,6 @@
-const { handleIncomingMessage } = require('./integration');
+const { handleIncomingMessage, shouldHandleMessage } = require('./integration');
 
 module.exports = {
-  handleIncomingMessage
+  handleIncomingMessage,
+  shouldHandleMessage
 };

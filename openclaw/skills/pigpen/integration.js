@@ -35,7 +35,9 @@ function shouldHandleMessage(message) {
   }
 
   const operatorNames = Object.values(operatorRegistry.operators).map(op => op.name.toLowerCase());
-  return operatorNames.some(name => normalized.includes(name));
+  const operatorFirstNames = operatorNames.map(name => name.split(' ')[0]);
+  return operatorNames.some(name => normalized.includes(name)) ||
+    operatorFirstNames.some(name => normalized.includes(name));
 }
 
 async function handleIncomingMessage({
