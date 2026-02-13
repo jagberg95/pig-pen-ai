@@ -52,26 +52,63 @@ else
     cp .env.example .env
 
     echo ""
-    echo " Enter your Anthropic API key"
-    echo " (get one at https://console.anthropic.com)"
+    echo " Choose your LLM provider:"
     echo ""
-    read -p "  API Key: " API_KEY
+    echo "   [1] Groq  (FREE cloud - Llama 3.3 70B)"
+    echo "       Get a free key at https://console.groq.com"
+    echo ""
+    echo "   [2] Ollama (FREE local - no API key needed)"
+    echo "       Install from https://ollama.com"
+    echo ""
+    echo "   [3] Anthropic (PAID - Claude)"
+    echo "       Key from https://console.anthropic.com"
+    echo ""
+    read -p "  Choice [1/2/3]: " PROVIDER_CHOICE
 
-    if [ -z "$API_KEY" ]; then
-        echo ""
-        echo " No key entered. You can add it later in the .env file."
-    else
-        cat > .env << EOF
+    case "$PROVIDER_CHOICE" in
+        2)
+            # Ollama — no key needed
+            cat > .env << EOF
 # Pig Pen Environment Variables
-ANTHROPIC_API_KEY=$API_KEY
-
-# Optional overrides
-# PIGPEN_MODEL=claude-sonnet-4-20250514
-# PIGPEN_MAX_TOKENS=4096
+LLM_PROVIDER=ollama
+OLLAMA_URL=http://localhost:11434
 EOF
-        echo ""
-        echo "      API key saved to .env"
-    fi
+            echo ""
+            echo "      Ollama selected. Make sure Ollama is running:"
+            echo "        ollama pull llama3.1"
+            echo "        ollama serve"
+            ;;
+        3)
+            # Anthropic
+            echo ""
+            read -p "  Anthropic API Key: " API_KEY
+            if [ -z "$API_KEY" ]; then
+                echo " No key entered. Add it later in .env"
+            else
+                cat > .env << EOF
+# Pig Pen Environment Variables
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=$API_KEY
+EOF
+                echo "      API key saved to .env"
+            fi
+            ;;
+        *)
+            # Groq (default / choice 1)
+            echo ""
+            read -p "  Groq API Key (free from console.groq.com): " API_KEY
+            if [ -z "$API_KEY" ]; then
+                echo " No key entered. Add it later in .env"
+            else
+                cat > .env << EOF
+# Pig Pen Environment Variables
+LLM_PROVIDER=groq
+GROQ_API_KEY=$API_KEY
+EOF
+                echo "      API key saved to .env"
+            fi
+            ;;
+    esac
 fi
 
 # ── Verify installation ──────────────────────────────────────────

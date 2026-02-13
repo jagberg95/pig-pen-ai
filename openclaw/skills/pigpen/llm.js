@@ -1,36 +1,188 @@
-const Anthropic = require('@anthropic-ai/sdk');
-
 /**
- * LLM Execution Layer for Pig Pen
- * 
- * Wraps the Anthropic Claude API and handles:
+ * LLM Execution Layer for Pig Pen — Multi-Provider
+ *
+ * Supported providers:
+ *   groq     — Free cloud API (Llama 3.3 70B). Get a key at https://console.groq.com
+ *   ollama   — Free local inference, no API key needed. Install from https://ollama.com
+ *   anthropic — Paid (Claude). Key from https://console.anthropic.com
+ *
+ * Handles:
  *  - Single operator execution
  *  - Sequential workflows (chained calls, each seeing prior outputs)
  *  - Parallel workflows (concurrent calls + synthesis)
  *  - Token budgets and safety limits
  */
 
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const PROVIDERS = {
+  groq: {
+    name: 'Groq',
+    defaultModel: 'llama-3.3-70b-versatile',
+    envKey: 'GROQ_API_KEY',
+    free: true
+  },
+  ollama: {
+    name: 'Ollama',
+    defaultModel: 'llama3.1',
+    envKey: null, // no key needed
+    free: true
+  },
+  anthropic: {
+    name: 'Anthropic',
+    defaultModel: 'claude-sonnet-4-20250514',
+    envKey: 'ANTHROPIC_API_KEY',
+    free: false
+  }
+};
+
 const DEFAULT_MAX_TOKENS = 4096;
+
+// ─── Provider-specific API adapters ─────────────────────────────────
+
+/**
+ * Each adapter takes (config) and returns an object with:
+ *   chat({ system, userMessage, model, maxTokens }) => { content, usage, model, stopReason }
+ */
+
+function createGroqAdapter(config) {
+  const Groq = require('groq-sdk');
+  const apiKey = config.apiKey || process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error('Groq API key required. Get a FREE key at https://console.groq.com and set GROQ_API_KEY.');
+  }
+  const client = new Groq({ apiKey });
+
+  return {
+    provider: 'groq',
+    async chat({ system, userMessage, model, maxTokens }) {
+      const response = await client.chat.completions.create({
+        model: model || PROVIDERS.groq.defaultModel,
+        max_tokens: maxTokens || DEFAULT_MAX_TOKENS,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userMessage }
+        ]
+      });
+      const choice = response.choices[0];
+      return {
+        content: choice.message.content,
+        usage: response.usage
+          ? { input_tokens: response.usage.prompt_tokens, output_tokens: response.usage.completion_tokens }
+          : { input_tokens: 0, output_tokens: 0 },
+        model: response.model,
+        stopReason: choice.finish_reason
+      };
+    }
+  };
+}
+
+function createOllamaAdapter(config) {
+  const baseUrl = config.ollamaUrl || process.env.OLLAMA_URL || 'http://localhost:11434';
+
+  return {
+    provider: 'ollama',
+    async chat({ system, userMessage, model, maxTokens }) {
+      // Ollama exposes a simple HTTP API — no SDK needed
+      const url = `${baseUrl}/api/chat`;
+      const body = {
+        model: model || PROVIDERS.ollama.defaultModel,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userMessage }
+        ],
+        stream: false,
+        options: {
+          num_predict: maxTokens || DEFAULT_MAX_TOKENS
+        }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Ollama error (${response.status}): ${text}`);
+      }
+
+      const data = await response.json();
+      return {
+        content: data.message.content,
+        usage: {
+          input_tokens: data.prompt_eval_count || 0,
+          output_tokens: data.eval_count || 0
+        },
+        model: data.model,
+        stopReason: data.done ? 'end_turn' : 'unknown'
+      };
+    }
+  };
+}
+
+function createAnthropicAdapter(config) {
+  const Anthropic = require('@anthropic-ai/sdk');
+  const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('Anthropic API key required. Set ANTHROPIC_API_KEY or pass config.apiKey.');
+  }
+  const client = new Anthropic({ apiKey });
+
+  return {
+    provider: 'anthropic',
+    async chat({ system, userMessage, model, maxTokens }) {
+      const response = await client.messages.create({
+        model: model || PROVIDERS.anthropic.defaultModel,
+        max_tokens: maxTokens || DEFAULT_MAX_TOKENS,
+        system,
+        messages: [
+          { role: 'user', content: userMessage }
+        ]
+      });
+      return {
+        content: response.content[0].text,
+        usage: response.usage,
+        model: response.model,
+        stopReason: response.stop_reason
+      };
+    }
+  };
+}
+
+function createAdapter(provider, config) {
+  switch (provider) {
+    case 'groq': return createGroqAdapter(config);
+    case 'ollama': return createOllamaAdapter(config);
+    case 'anthropic': return createAnthropicAdapter(config);
+    default: throw new Error(`Unknown provider "${provider}". Use: groq, ollama, or anthropic.`);
+  }
+}
+
+// ─── Auto-detect best available provider ────────────────────────────
+
+function detectProvider() {
+  if (process.env.LLM_PROVIDER) return process.env.LLM_PROVIDER;
+  if (process.env.GROQ_API_KEY) return 'groq';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  // Fall back to Ollama (local, no key needed)
+  return 'ollama';
+}
 
 class LLMClient {
   /**
    * @param {object} config
-   * @param {string} config.apiKey    - Anthropic API key (or reads ANTHROPIC_API_KEY env)
-   * @param {string} [config.model]   - Model identifier
-   * @param {number} [config.maxTokens] - Default max tokens per response
+   * @param {string} [config.provider]   - 'groq' (free), 'ollama' (free local), or 'anthropic' (paid)
+   * @param {string} [config.apiKey]     - API key (not needed for ollama)
+   * @param {string} [config.model]      - Model override
+   * @param {number} [config.maxTokens]  - Default max tokens per response
+   * @param {string} [config.ollamaUrl]  - Ollama base URL (default: http://localhost:11434)
    */
   constructor(config = {}) {
-    const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        'Anthropic API key is required. Set ANTHROPIC_API_KEY in your environment or pass config.apiKey.'
-      );
-    }
-
-    this.client = new Anthropic({ apiKey });
-    this.model = config.model || DEFAULT_MODEL;
+    const provider = config.provider || detectProvider();
+    this.adapter = createAdapter(provider, config);
+    this.model = config.model || PROVIDERS[provider].defaultModel;
     this.maxTokens = config.maxTokens || DEFAULT_MAX_TOKENS;
+    this.providerName = PROVIDERS[provider].name;
   }
 
   // ─── Single Operator Execution ──────────────────────────────────────
@@ -48,21 +200,20 @@ class LLMClient {
   async executeOperator({ systemPrompt, userMessage, operatorId, maxTokens }) {
     const startTime = Date.now();
 
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: maxTokens || this.maxTokens,
+    const response = await this.adapter.chat({
       system: systemPrompt,
-      messages: [
-        { role: 'user', content: userMessage }
-      ]
+      userMessage,
+      model: this.model,
+      maxTokens: maxTokens || this.maxTokens
     });
 
     return {
       operatorId,
-      content: response.content[0].text,
+      content: response.content,
       usage: response.usage,
       model: response.model,
-      stopReason: response.stop_reason,
+      stopReason: response.stopReason,
+      provider: this.adapter.provider,
       duration: Date.now() - startTime
     };
   }
@@ -276,6 +427,8 @@ function aggregateUsage(results) {
 
 module.exports = {
   LLMClient,
-  DEFAULT_MODEL,
-  DEFAULT_MAX_TOKENS
+  PROVIDERS,
+  DEFAULT_MAX_TOKENS,
+  detectProvider,
+  createAdapter
 };

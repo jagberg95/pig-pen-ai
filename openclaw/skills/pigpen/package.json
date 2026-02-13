@@ -1,11 +1,12 @@
 {
   "name": "pigpen-skill",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "index.js",
   "type": "commonjs",
   "private": true,
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "groq-sdk": "^0.9.0",
     "dotenv": "^16.4.7"
   },
   "scripts": {

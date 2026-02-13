@@ -61,26 +61,58 @@ if exist ".env" (
     copy ".env.example" ".env" >nul 2>nul
 
     echo.
-    echo  Enter your Anthropic API key
-    echo  (get one at https://console.anthropic.com)
+    echo  Choose your LLM provider:
     echo.
-    set /p API_KEY="  API Key: "
+    echo    [1] Groq  (FREE cloud - Llama 3.3 70B)
+    echo        Get a free key at https://console.groq.com
+    echo.
+    echo    [2] Ollama (FREE local - no API key needed)
+    echo        Install from https://ollama.com
+    echo.
+    echo    [3] Anthropic (PAID - Claude)
+    echo        Key from https://console.anthropic.com
+    echo.
+    set /p PROVIDER_CHOICE="  Choice [1/2/3]: "
 
-    if "!API_KEY!"=="" (
-        echo.
-        echo  No key entered. You can add it later in the .env file.
-    ) else (
-        :: Write the key into .env
+    if "!PROVIDER_CHOICE!"=="2" (
+        :: Ollama — no key needed
         (
             echo # Pig Pen Environment Variables
-            echo ANTHROPIC_API_KEY=!API_KEY!
-            echo.
-            echo # Optional overrides
-            echo # PIGPEN_MODEL=claude-sonnet-4-20250514
-            echo # PIGPEN_MAX_TOKENS=4096
+            echo LLM_PROVIDER=ollama
+            echo OLLAMA_URL=http://localhost:11434
         ) > ".env"
         echo.
-        echo       API key saved to .env
+        echo       Ollama selected. Make sure Ollama is running:
+        echo         ollama pull llama3.1
+        echo         ollama serve
+    ) else if "!PROVIDER_CHOICE!"=="3" (
+        :: Anthropic
+        echo.
+        set /p API_KEY="  Anthropic API Key: "
+        if "!API_KEY!"=="" (
+            echo  No key entered. Add it later in .env
+        ) else (
+            (
+                echo # Pig Pen Environment Variables
+                echo LLM_PROVIDER=anthropic
+                echo ANTHROPIC_API_KEY=!API_KEY!
+            ) > ".env"
+            echo       API key saved to .env
+        )
+    ) else (
+        :: Groq (default / choice 1)
+        echo.
+        set /p API_KEY="  Groq API Key (free from console.groq.com): "
+        if "!API_KEY!"=="" (
+            echo  No key entered. Add it later in .env
+        ) else (
+            (
+                echo # Pig Pen Environment Variables
+                echo LLM_PROVIDER=groq
+                echo GROQ_API_KEY=!API_KEY!
+            ) > ".env"
+            echo       API key saved to .env
+        )
     )
 )
 
