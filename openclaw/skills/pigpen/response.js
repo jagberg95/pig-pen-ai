@@ -1,6 +1,11 @@
+const { getAKBPreamble } = require('./akb');
+
 function buildSystemPrompt(operator, context, task) {
+  // Start with the canonical AKB so every operator response is grounded
+  // in Pearl & Pig's organizational knowledge, governance, and philosophy
+  const akb = getAKBPreamble();
   const basePrompt = operator.system_prompt_template;
-  let enhancedPrompt = basePrompt.replace('{TASK}', task);
+  let enhancedPrompt = akb + basePrompt.replace('{TASK}', task);
 
   if (context.project) {
     enhancedPrompt += `\n\nPROJECT CONTEXT:\n${formatProjectContext(context.project)}`;
