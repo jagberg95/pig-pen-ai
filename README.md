@@ -1,7 +1,32 @@
 # pig-pen-ai
 Jons AI STACK
 
-## Quick Start
+## Installation
+
+Run the installer — it handles dependencies, API key setup, and verification in one step:
+
+**Windows:**
+```
+setup.bat
+```
+
+**Mac / Linux:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+The installer will:
+1. Check that Node.js and npm are installed
+2. Install all dependencies
+3. Prompt you for your Anthropic API key and save it to `.env`
+4. Verify the module loads and routing works
+
+---
+
+## Manual Setup
+
+If you prefer to set things up yourself:
 
 ### 1. Install dependencies
 
