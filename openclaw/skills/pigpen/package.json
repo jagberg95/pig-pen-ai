@@ -1,0 +1,14 @@
+{
+  "name": "pigpen-skill",
+  "version": "0.1.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.7"
+  },
+  "scripts": {
+    "test": "node test/smoke.js"
+  }
+}
