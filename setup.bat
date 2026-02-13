@@ -138,7 +138,7 @@ goto :env_done
 echo.
 echo [4/4] Verifying installation...
 cd /d "%~dp0"
-node -e "try { const { shouldHandleMessage } = require('./openclaw/skills/pigpen'); console.log('       Pig Pen module loaded successfully.'); const ok = shouldHandleMessage('Hey Jon, need your help'); console.log('       Router test: ' + (ok ? 'PASS' : 'FAIL')); if (!ok) { process.exit(1); } } catch(e) { console.log('  ERROR: ' + e.message); process.exit(1); }"
+node verify.js
 if %errorlevel% neq 0 (
     echo.
     echo  WARNING: Verification failed. Check the errors above.

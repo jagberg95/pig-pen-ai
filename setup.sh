@@ -125,17 +125,7 @@ fi
 echo ""
 echo "[4/4] Verifying installation..."
 cd "$SCRIPT_DIR"
-node -e "
-try {
-  const { shouldHandleMessage } = require('./openclaw/skills/pigpen');
-  console.log('      Pig Pen module loaded successfully.');
-  const ok = shouldHandleMessage('Hey Jon, need your help');
-  console.log('      Router test: ' + (ok ? 'PASS' : 'FAIL'));
-} catch(e) {
-  console.log('  ERROR: ' + e.message);
-  process.exit(1);
-}
-"
+node verify.js
 
 # ── Done ──────────────────────────────────────────────────────────
 echo ""
