@@ -49,8 +49,6 @@ if [ -f ".env" ]; then
     echo "      .env file already exists - skipping."
     echo "      To reconfigure, delete .env and run setup again."
 else
-    cp .env.example .env
-
     echo ""
     echo " Choose your LLM provider:"
     echo ""
@@ -83,7 +81,13 @@ EOF
             echo ""
             read -p "  Anthropic API Key: " API_KEY
             if [ -z "$API_KEY" ]; then
-                echo " No key entered. Add it later in .env"
+                echo " No key entered. You can add it later in .env"
+                cat > .env << EOF
+# Pig Pen Environment Variables
+LLM_PROVIDER=anthropic
+# Get a key at https://console.anthropic.com
+ANTHROPIC_API_KEY=
+EOF
             else
                 cat > .env << EOF
 # Pig Pen Environment Variables
@@ -98,7 +102,13 @@ EOF
             echo ""
             read -p "  Groq API Key (free from console.groq.com): " API_KEY
             if [ -z "$API_KEY" ]; then
-                echo " No key entered. Add it later in .env"
+                echo " No key entered. You can add it later in .env"
+                cat > .env << EOF
+# Pig Pen Environment Variables
+LLM_PROVIDER=groq
+# Get a free key at https://console.groq.com
+GROQ_API_KEY=
+EOF
             else
                 cat > .env << EOF
 # Pig Pen Environment Variables
@@ -134,7 +144,7 @@ echo "  Setup complete!"
 echo " ============================================"
 echo ""
 echo " Next steps:"
-echo "   1. Make sure your API key is in .env"
+echo "   1. Make sure your LLM provider is configured in .env"
 echo "   2. Run your app or test with:"
 echo "      node -e \"const pp = require('./openclaw/skills/pigpen')\""
 echo ""

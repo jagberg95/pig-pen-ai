@@ -58,63 +58,81 @@ if exist ".env" (
     echo       .env file already exists - skipping.
     echo       To reconfigure, delete .env and run setup again.
 ) else (
-    copy ".env.example" ".env" >nul 2>nul
-
     echo.
     echo  Choose your LLM provider:
     echo.
-    echo    [1] Groq  (FREE cloud - Llama 3.3 70B)
+    echo    [1] Groq  - FREE cloud, Llama 3.3 70B
     echo        Get a free key at https://console.groq.com
     echo.
-    echo    [2] Ollama (FREE local - no API key needed)
+    echo    [2] Ollama - FREE local, no API key needed
     echo        Install from https://ollama.com
     echo.
-    echo    [3] Anthropic (PAID - Claude)
+    echo    [3] Anthropic - PAID, Claude
     echo        Key from https://console.anthropic.com
     echo.
     set /p PROVIDER_CHOICE="  Choice [1/2/3]: "
 
-    if "!PROVIDER_CHOICE!"=="2" (
-        :: Ollama — no key needed
-        (
-            echo # Pig Pen Environment Variables
-            echo LLM_PROVIDER=ollama
-            echo OLLAMA_URL=http://localhost:11434
-        ) > ".env"
-        echo.
-        echo       Ollama selected. Make sure Ollama is running:
-        echo         ollama pull llama3.1
-        echo         ollama serve
-    ) else if "!PROVIDER_CHOICE!"=="3" (
-        :: Anthropic
-        echo.
-        set /p API_KEY="  Anthropic API Key: "
-        if "!API_KEY!"=="" (
-            echo  No key entered. Add it later in .env
-        ) else (
-            (
-                echo # Pig Pen Environment Variables
-                echo LLM_PROVIDER=anthropic
-                echo ANTHROPIC_API_KEY=!API_KEY!
-            ) > ".env"
-            echo       API key saved to .env
-        )
-    ) else (
-        :: Groq (default / choice 1)
-        echo.
-        set /p API_KEY="  Groq API Key (free from console.groq.com): "
-        if "!API_KEY!"=="" (
-            echo  No key entered. Add it later in .env
-        ) else (
-            (
-                echo # Pig Pen Environment Variables
-                echo LLM_PROVIDER=groq
-                echo GROQ_API_KEY=!API_KEY!
-            ) > ".env"
-            echo       API key saved to .env
-        )
-    )
+    if "!PROVIDER_CHOICE!"=="2" goto :ollama
+    if "!PROVIDER_CHOICE!"=="3" goto :anthropic
+    goto :groq
 )
+goto :env_done
+
+:groq
+echo.
+set /p API_KEY="  Groq API Key (free from console.groq.com): "
+if "!API_KEY!"=="" (
+    echo  No key entered. You can add it later in .env
+    (
+        echo # Pig Pen Environment Variables
+        echo LLM_PROVIDER=groq
+        echo # Get a free key at https://console.groq.com
+        echo GROQ_API_KEY=
+    ) > ".env"
+) else (
+    (
+        echo # Pig Pen Environment Variables
+        echo LLM_PROVIDER=groq
+        echo GROQ_API_KEY=!API_KEY!
+    ) > ".env"
+    echo       API key saved to .env
+)
+goto :env_done
+
+:ollama
+(
+    echo # Pig Pen Environment Variables
+    echo LLM_PROVIDER=ollama
+    echo OLLAMA_URL=http://localhost:11434
+) > ".env"
+echo.
+echo       Ollama selected. Make sure Ollama is running:
+echo         ollama pull llama3.1
+echo         ollama serve
+goto :env_done
+
+:anthropic
+echo.
+set /p API_KEY="  Anthropic API Key: "
+if "!API_KEY!"=="" (
+    echo  No key entered. You can add it later in .env
+    (
+        echo # Pig Pen Environment Variables
+        echo LLM_PROVIDER=anthropic
+        echo # Get a key at https://console.anthropic.com
+        echo ANTHROPIC_API_KEY=
+    ) > ".env"
+) else (
+    (
+        echo # Pig Pen Environment Variables
+        echo LLM_PROVIDER=anthropic
+        echo ANTHROPIC_API_KEY=!API_KEY!
+    ) > ".env"
+    echo       API key saved to .env
+)
+goto :env_done
+
+:env_done
 
 :: ── Verify installation ──────────────────────────────────────────
 echo.
@@ -136,7 +154,7 @@ echo   Setup complete!
 echo  ============================================
 echo.
 echo  Next steps:
-echo    1. Make sure your API key is in .env
+echo    1. Make sure your LLM provider is configured in .env
 echo    2. Run your app or test with:
 echo       node -e "const pp = require('./openclaw/skills/pigpen')"
 echo.
