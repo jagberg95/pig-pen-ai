@@ -80,7 +80,32 @@ goto :env_done
 
 :groq
 echo.
-set /p API_KEY="  Groq API Key (free from console.groq.com): "
+echo       Setting up Groq (free cloud LLM)...
+echo.
+
+:: Install groq-sdk if not already present
+cd /d "%~dp0openclaw\skills\pigpen"
+call npm list groq-sdk >nul 2>nul
+if %errorlevel% neq 0 (
+    echo       Installing Groq SDK...
+    call npm install groq-sdk --save >nul 2>nul
+    echo       Groq SDK installed.
+) else (
+    echo       Groq SDK already installed.
+)
+cd /d "%~dp0"
+
+:: Open browser to get API key
+echo.
+echo  You need a free Groq API key.
+echo  Opening https://console.groq.com in your browser...
+start "" "https://console.groq.com"
+echo.
+echo  1. Sign up or log in
+echo  2. Go to API Keys and create a new key
+echo  3. Copy the key and paste it below
+echo.
+set /p API_KEY="  Groq API Key: "
 if "!API_KEY!"=="" (
     echo  No key entered. You can add it later in .env
     (
@@ -167,6 +192,31 @@ echo       Ollama is ready.
 goto :env_done
 
 :anthropic
+echo.
+echo       Setting up Anthropic (paid - Claude)...
+echo.
+
+:: Install anthropic SDK if not already present
+cd /d "%~dp0openclaw\skills\pigpen"
+call npm list @anthropic-ai/sdk >nul 2>nul
+if %errorlevel% neq 0 (
+    echo       Installing Anthropic SDK...
+    call npm install @anthropic-ai/sdk --save >nul 2>nul
+    echo       Anthropic SDK installed.
+) else (
+    echo       Anthropic SDK already installed.
+)
+cd /d "%~dp0"
+
+:: Open browser to get API key
+echo.
+echo  You need an Anthropic API key.
+echo  Opening https://console.anthropic.com in your browser...
+start "" "https://console.anthropic.com"
+echo.
+echo  1. Sign up or log in
+echo  2. Go to API Keys and create a new key
+echo  3. Copy the key and paste it below
 echo.
 set /p API_KEY="  Anthropic API Key: "
 if "!API_KEY!"=="" (

@@ -117,7 +117,23 @@ EOF
         3)
             # Anthropic
             echo ""
-            read -p "  Anthropic API Key: " API_KEY
+            echo "      Checking for Anthropic SDK..."
+            if npm list @anthropic-ai/sdk > /dev/null 2>&1; then
+                echo "      @anthropic-ai/sdk already installed."
+            else
+                echo "      Installing @anthropic-ai/sdk..."
+                npm install @anthropic-ai/sdk --save > /dev/null 2>&1
+                echo "      @anthropic-ai/sdk installed."
+            fi
+            echo ""
+            echo "      Opening Anthropic console to get your API key..."
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                open "https://console.anthropic.com/settings/keys"
+            else
+                xdg-open "https://console.anthropic.com/settings/keys" 2>/dev/null || echo "      Visit: https://console.anthropic.com/settings/keys"
+            fi
+            echo ""
+            read -p "  Paste your Anthropic API Key: " API_KEY
             if [ -z "$API_KEY" ]; then
                 echo " No key entered. You can add it later in .env"
                 cat > .env << EOF
@@ -138,7 +154,23 @@ EOF
         *)
             # Groq (default / choice 1)
             echo ""
-            read -p "  Groq API Key (free from console.groq.com): " API_KEY
+            echo "      Checking for Groq SDK..."
+            if npm list groq-sdk > /dev/null 2>&1; then
+                echo "      groq-sdk already installed."
+            else
+                echo "      Installing groq-sdk..."
+                npm install groq-sdk --save > /dev/null 2>&1
+                echo "      groq-sdk installed."
+            fi
+            echo ""
+            echo "      Opening Groq console to get your free API key..."
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                open "https://console.groq.com/keys"
+            else
+                xdg-open "https://console.groq.com/keys" 2>/dev/null || echo "      Visit: https://console.groq.com/keys"
+            fi
+            echo ""
+            read -p "  Paste your Groq API Key: " API_KEY
             if [ -z "$API_KEY" ]; then
                 echo " No key entered. You can add it later in .env"
                 cat > .env << EOF
