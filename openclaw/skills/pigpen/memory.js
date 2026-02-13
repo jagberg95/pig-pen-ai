@@ -14,6 +14,11 @@ class MemoryStore {
     this.messagesByUser.set(userId, history.slice(-50));
   }
 
+  // Alias used by integration.js
+  addMessage(userId, message) {
+    return this.recordMessage(userId, message);
+  }
+
   getRecentMessages(userId, limit = 10) {
     if (!userId) {
       return [];
